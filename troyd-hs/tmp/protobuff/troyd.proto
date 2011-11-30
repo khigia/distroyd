@@ -1,0 +1,5 @@
+package troyd.protbuf;
+
+message ReqOrderAdd {
+  required string instrument = 1;
+}

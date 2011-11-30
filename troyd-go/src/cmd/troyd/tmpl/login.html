@@ -1,0 +1,29 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+{{template "_base_head.html" "Troyd - login"}}
+<body>
+<div id="wrapper">
+  {{template "_base_body_wrapper_header.html"}}
+  {{template "_base_body_wrapper_menu.html"}}
+  <div id="page">
+    <div id="page-bgtop">
+      <div id="page-bgbtm">
+        <div id="content">
+            <h2>Login</h2>
+          <div>
+              <form action="/login/" method="POST">
+                  <div><input type="text"   name="login"/></div>
+                  <div><input type="submit" value="Save"></div>
+              </form>
+          </div>
+          <div style="clear: both;">&nbsp;</div>
+        </div>
+        {{template "_base_body_wrapper_sidebar.html"}}
+      </div>
+    </div>
+  </div>
+  <!-- end #page -->
+</div>
+{{template "_base_body_footer.html"}}
+</body>
+</html>
+

@@ -1,0 +1,3 @@
+runhaskell Troyd/Main.hs 12345
+echo -e "OrderAdd ZZZZ Bid 1 100\nOrderAdd ZZZZ Bid 3 101\nOrderAdd ZZZZ Ask 5 101" | nc -q 1 localhost 12345
+telnet localhost 123456
