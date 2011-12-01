@@ -35,6 +35,14 @@ func (b *Book) AddOrder(o *Order) {
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
 				}
+				*b.ifc <- &IfcEvtFill{
+					Owner:   o.Owner,
+					Inst:    o.Inst,
+					IsBid:   o.IsBid,
+					Prx:     o.Prx,
+					FillQty: fillQty,
+					Ctpy:    b.asks[0].Owner,
+				}
 				b.asks = b.asks[1:]
 			} else {
 				fillQty := o.RemQty()
@@ -47,6 +55,14 @@ func (b *Book) AddOrder(o *Order) {
 					Prx:     b.asks[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
+				}
+				*b.ifc <- &IfcEvtFill{
+					Owner:   o.Owner,
+					Inst:    o.Inst,
+					IsBid:   o.IsBid,
+					Prx:     o.Prx,
+					FillQty: fillQty,
+					Ctpy:    b.asks[0].Owner,
 				}
 			}
 		}
@@ -80,11 +96,19 @@ func (b *Book) AddOrder(o *Order) {
 				b.bids[0].Filled += fillQty // publish fill
 				*b.ifc <- &IfcEvtFill{
 					Owner:   b.bids[0].Owner,
-					Inst:    o.Inst,
+					Inst:    b.bids[0].Inst,
 					IsBid:   b.bids[0].IsBid,
 					Prx:     b.bids[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
+				}
+				*b.ifc <- &IfcEvtFill{
+					Owner:   o.Owner,
+					Inst:    o.Inst,
+					IsBid:   o.IsBid,
+					Prx:     o.Prx,
+					FillQty: fillQty,
+					Ctpy:    b.bids[0].Owner,
 				}
 				b.bids = b.bids[1:]
 			} else {
@@ -93,11 +117,19 @@ func (b *Book) AddOrder(o *Order) {
 				b.bids[0].Filled += fillQty // publish fill
 				*b.ifc <- &IfcEvtFill{
 					Owner:   b.bids[0].Owner,
-					Inst:    o.Inst,
+					Inst:    b.bids[0].Inst,
 					IsBid:   b.bids[0].IsBid,
 					Prx:     b.bids[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
+				}
+				*b.ifc <- &IfcEvtFill{
+					Owner:   o.Owner,
+					Inst:    o.Inst,
+					IsBid:   o.IsBid,
+					Prx:     o.Prx,
+					FillQty: fillQty,
+					Ctpy:    b.bids[0].Owner,
 				}
 			}
 		}

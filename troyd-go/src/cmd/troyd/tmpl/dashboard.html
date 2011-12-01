@@ -97,7 +97,7 @@
               }
 
               if (window["WebSocket"]) {
-                  var conn = new WebSocket("ws://localhost:8080/ws/dashboard/{{.}}");
+                  var conn = new WebSocket("ws://localhost:8080/ws/dashboard/{{.Instrument}}");
                   conn.onclose = function(evt) {
                       appendLog($("<div><b>Connection closed.</b></div>"))
                   }

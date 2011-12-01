@@ -49,8 +49,8 @@ func (api *ClientApi) InstrumentList() []string {
 }
 
 func (api *ClientApi) OrderAdd(order *Order) {
-	log.Println("sending order to engine.api") // TODO to ems
-	api.engine.api <- order
+	log.Println("sending order to ems")
+	api.ems.OrderAdd(order)
 }
 
 func (api *ClientApi) OrderDel(owner string, inst string, prx int, isBid bool) {
@@ -194,8 +194,15 @@ func webMakeWsHandle(fn func(ws *websocket.Conn, api *ClientApi), eng *CrossEngi
 }
 
 func webWsDashboard(ws *websocket.Conn, api *ClientApi) {
+	inst := ws.Request().URL.Path[len("/ws/dashboard/"):]
+    log.Println("ws on ", inst)
+	cookie, err := ws.Request().Cookie("troyd-session")
+	if err != nil {
+		return
+	}
+    login := cookie.Value
 	var mdChan = make(chan []mdRow)
-	var exChan = make(chan map[int]OrderQtyBookRow) // TODO this should come from mdChan!!!
+	var exChan = make(chan OrderQtyBook) // TODO this should come from mdChan!!!
 	//var emsChan = make(chan int) // TODO sub to ems orders
 	var ctrlChan = make(chan int)
 	type wsMsg struct {
@@ -206,7 +213,7 @@ func webWsDashboard(ws *websocket.Conn, api *ClientApi) {
 	go func() {
 		log.Printf("Enter mdHub receiver")
 		var md []mdRow
-		var ex map[int]OrderQtyBookRow
+		var ex OrderQtyBook
 		ok := true
 		for ok {
 			select {
@@ -240,18 +247,19 @@ func webWsDashboard(ws *websocket.Conn, api *ClientApi) {
 	}()
 	defer func() {
 		api.mkt.Unsubscribe(mdChan)
-		api.ems.Unsubscribe(exChan)
+		api.ems.Unsubscribe(login, inst, exChan)
 		ctrlChan <- 0
 		ws.Close()
 	}()
 	api.mkt.Subscribe(mdChan)
-	api.ems.Subscribe(exChan)
+	api.ems.Subscribe(login, inst, exChan)
 	type dashMsg struct {
 		Login string
 		Inst  string
 		Row   mdRow
 		Coln  int
 	}
+    // TODO see websocket.JSON.Receive()
 	buf := make([]byte, 256)
 	for {
 		n, err := ws.Read(buf)
