@@ -46,12 +46,8 @@ func (ems *Ems) Unsubscribe(login string, inst string, ch chan OrderQtyBook) {
 	ems.evtCh <- EmsBookTopSub{login, inst, ch, false}
 }
 
-type ReqOrderAdd struct {
-	order *Order
-}
-
 func (ems *Ems) OrderAdd(order *Order) {
-	ems.evtCh <- &ReqOrderAdd{order}
+	ems.eng.api <- order
 }
 
 func (ems *Ems) getOrderQtyBookContext(login string, inst string) *OrderQtyBookContext {
@@ -75,23 +71,23 @@ func (ems *Ems) Run() {
 	for {
 		m := <-ems.evtCh
 		switch t := m.(type) {
-		case *ReqOrderAdd:
-			log.Println("ems fwd order add to engine")
-			ems.eng.api <- t.order
-			ctx := ems.getOrderQtyBookContext(t.order.Owner, t.order.Inst)
+		case IfcEvtOrderAdd:
+			ctx := ems.getOrderQtyBookContext(t.o.Owner, t.o.Inst)
 			book := ctx.book
-			if t.order.IsBid {
-				row := book[t.order.Prx]
-				row.bid += t.order.Qty
-				book[t.order.Prx] = row
+			if t.o.IsBid {
+				row := book[t.o.Prx]
+				row.bid += t.o.Qty
+				book[t.o.Prx] = row
 			} else {
-				row := book[t.order.Prx]
-				row.ask += t.order.Qty
-				book[t.order.Prx] = row
+				row := book[t.o.Prx]
+				row.ask += t.o.Qty
+				book[t.o.Prx] = row
 			}
+			ctx.book = book
 			for subscriber, _ := range ctx.subscribers {
 				subscriber <- book
 			}
+			log.Println("ems: recv order add notification: ", book)
 		case IfcEvtFill:
 			log.Println("ems recv fill from engine")
 			ctx := ems.getOrderQtyBookContext(t.Owner, t.Inst)
@@ -105,11 +101,11 @@ func (ems *Ems) Run() {
 				row.ask -= t.FillQty
 				book[t.Prx] = row
 			}
+			ctx.book = book
+			log.Println("ems recv fill book ", book)
 			for subscriber, _ := range ctx.subscribers {
 				subscriber <- book
 			}
-		case string:
-			log.Println("ems evt: string: ", t)
 		case EmsBookTopSub:
 			log.Println("ems evt: sub req: ", t)
 			ctx := ems.getOrderQtyBookContext(t.login, t.inst)

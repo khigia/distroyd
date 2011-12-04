@@ -26,7 +26,7 @@ func main() {
 	go ems.Run()
 	ems.Connect(eng)
 
-	mkt := MktNew()
+	mkt := MktNew(eng)
 	go mkt.Run() // TODO receive data from engine ... but for now:
 	go func() {
 		for {

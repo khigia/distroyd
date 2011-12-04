@@ -246,12 +246,12 @@ func webWsDashboard(ws *websocket.Conn, api *ClientApi) {
 		log.Printf("Exit mdHub receiver")
 	}()
 	defer func() {
-		api.mkt.Unsubscribe(mdChan)
+		api.mkt.Unsubscribe(login, inst, mdChan)
 		api.ems.Unsubscribe(login, inst, exChan)
 		ctrlChan <- 0
 		ws.Close()
 	}()
-	api.mkt.Subscribe(mdChan)
+	api.mkt.Subscribe(login, inst, mdChan)
 	api.ems.Subscribe(login, inst, exChan)
 	type dashMsg struct {
 		Login string

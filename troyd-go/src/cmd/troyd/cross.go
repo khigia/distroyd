@@ -1,26 +1,26 @@
 package main
 
 import (
-        "log"
+	"log"
 )
 
 type Book struct {
-	ifc *chan IfcEvt
-	bids  []*Order //BidOrderHeap
-	asks  []*Order //AskOrderHeap
+	ifc  *chan IfcEvt
+	bids []*Order //BidOrderHeap
+	asks []*Order //AskOrderHeap
 }
 
 func NewBook(ifc *chan IfcEvt) *Book {
 	book := &Book{
-		ifc: ifc,
-		bids:  make([]*Order, 0),
-		asks:  make([]*Order, 0),
+		ifc:  ifc,
+		bids: make([]*Order, 0),
+		asks: make([]*Order, 0),
 	}
 	return book
 }
 
 func (b *Book) AddOrder(o *Order) {
-	log.Println("book recv order add")
+	log.Println("cross: book recv order add")
 	if o.IsBid {
 		for len(b.asks) > 0 && o.RemQty() > 0 && o.Prx >= b.asks[0].Prx {
 			if o.RemQty() >= b.asks[0].RemQty() {
@@ -32,18 +32,27 @@ func (b *Book) AddOrder(o *Order) {
 					Inst:    o.Inst,
 					IsBid:   b.asks[0].IsBid,
 					Prx:     b.asks[0].Prx,
+					FillPrx: b.asks[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
+				}
+				*b.ifc <- &IfcEvtMktQtyChange{
+					Inst:    o.Inst,
+					IsBid:   b.asks[0].IsBid,
+					Prx:     b.asks[0].Prx,
+					QtyDiff: -fillQty,
 				}
 				*b.ifc <- &IfcEvtFill{
 					Owner:   o.Owner,
 					Inst:    o.Inst,
 					IsBid:   o.IsBid,
 					Prx:     o.Prx,
+					FillPrx: b.asks[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    b.asks[0].Owner,
 				}
 				b.asks = b.asks[1:]
+				log.Println("cross: book filled order ", fillQty)
 			} else {
 				fillQty := o.RemQty()
 				o.Filled += fillQty         // publish fill
@@ -53,17 +62,26 @@ func (b *Book) AddOrder(o *Order) {
 					Inst:    o.Inst,
 					IsBid:   b.asks[0].IsBid,
 					Prx:     b.asks[0].Prx,
+					FillPrx: b.asks[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
+				}
+				*b.ifc <- &IfcEvtMktQtyChange{
+					Inst:    o.Inst,
+					IsBid:   b.asks[0].IsBid,
+					Prx:     b.asks[0].Prx,
+					QtyDiff: -fillQty,
 				}
 				*b.ifc <- &IfcEvtFill{
 					Owner:   o.Owner,
 					Inst:    o.Inst,
 					IsBid:   o.IsBid,
 					Prx:     o.Prx,
+					FillPrx: b.asks[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    b.asks[0].Owner,
 				}
+				log.Println("cross: book filled order ", fillQty)
 			}
 		}
 		if o.RemQty() > 0 {
@@ -79,15 +97,9 @@ func (b *Book) AddOrder(o *Order) {
 				b.bids = append(b.bids, o)
 				done = true
 			}
-			log.Println("added bid order to book", len(b.bids))
-			*b.ifc <- &IfcEvtMktQtyChange{
-				Inst:    o.Inst,
-				IsBid:   o.IsBid,
-				Prx:     o.Prx,
-				QtyDiff: o.RemQty(),
-			}
+			log.Println("cross: added bid order to book", len(b.bids))
 		}
-		log.Println("pulished bid book update")
+		log.Println("cross: book add order done")
 	} else {
 		for len(b.bids) > 0 && o.RemQty() > 0 && o.Prx <= b.bids[0].Prx {
 			if o.RemQty() >= b.bids[0].RemQty() {
@@ -99,14 +111,22 @@ func (b *Book) AddOrder(o *Order) {
 					Inst:    b.bids[0].Inst,
 					IsBid:   b.bids[0].IsBid,
 					Prx:     b.bids[0].Prx,
+					FillPrx: b.bids[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
+				}
+				*b.ifc <- &IfcEvtMktQtyChange{
+					Inst:    o.Inst,
+					IsBid:   b.bids[0].IsBid,
+					Prx:     b.bids[0].Prx,
+					QtyDiff: -fillQty,
 				}
 				*b.ifc <- &IfcEvtFill{
 					Owner:   o.Owner,
 					Inst:    o.Inst,
 					IsBid:   o.IsBid,
 					Prx:     o.Prx,
+					FillPrx: b.bids[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    b.bids[0].Owner,
 				}
@@ -120,14 +140,22 @@ func (b *Book) AddOrder(o *Order) {
 					Inst:    b.bids[0].Inst,
 					IsBid:   b.bids[0].IsBid,
 					Prx:     b.bids[0].Prx,
+					FillPrx: b.bids[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    o.Owner,
+				}
+				*b.ifc <- &IfcEvtMktQtyChange{
+					Inst:    o.Inst,
+					IsBid:   b.bids[0].IsBid,
+					Prx:     b.bids[0].Prx,
+					QtyDiff: -fillQty,
 				}
 				*b.ifc <- &IfcEvtFill{
 					Owner:   o.Owner,
 					Inst:    o.Inst,
 					IsBid:   o.IsBid,
 					Prx:     o.Prx,
+					FillPrx: b.bids[0].Prx,
 					FillQty: fillQty,
 					Ctpy:    b.bids[0].Owner,
 				}
@@ -146,16 +174,11 @@ func (b *Book) AddOrder(o *Order) {
 				b.asks = append(b.asks, o)
 				done = true
 			}
-			log.Println("added ask order to book", len(b.asks))
-			*b.ifc <- &IfcEvtMktQtyChange{
-				Inst:    o.Inst,
-				IsBid:   o.IsBid,
-				Prx:     o.Prx,
-				QtyDiff: o.RemQty(),
-			}
+			log.Println("cross: book added ask order to book", len(b.asks))
 		}
-		log.Println("pulished ask book update")
+		log.Println("cross: book add order done")
 	}
+	*b.ifc <- IfcEvtOrderAdd{*o}
 }
 
 func (b *Book) DelOrder(owner string, prx int, isBid bool) {
@@ -199,14 +222,14 @@ func (b *Book) DelOrder(owner string, prx int, isBid bool) {
 }
 
 type CrossEngine struct {
-	ifc chan IfcEvt
+	ifc   chan IfcEvt
 	api   chan Req
 	insts map[string]*Book
 }
 
 func NewCrossEngine() *CrossEngine {
 	return &CrossEngine{
-		ifc: make(chan IfcEvt),
+		ifc:   make(chan IfcEvt),
 		api:   make(chan Req),
 		insts: make(map[string]*Book),
 	}
@@ -281,9 +304,13 @@ type IfcEvtFill struct {
 	Inst    string
 	IsBid   bool
 	Prx     int
+	FillPrx int
 	FillQty int
 	Ctpy    string
 	// ref to order id
+}
+type IfcEvtOrderAdd struct {
+	o Order
 }
 
 func (eng *CrossEngine) RunIfc() {
@@ -291,17 +318,22 @@ func (eng *CrossEngine) RunIfc() {
 	for {
 		m := <-eng.ifc
 		switch t := m.(type) {
-		case *IfcEvtFill:
-			log.Println("eng ems evt: fill: %s", t)
-            ch := IfcEvtMktQtyChange{
-                    Inst: t.Inst,
-                    IsBid: t.IsBid,
-                    Prx: t.Prx,
-                    QtyDiff: -t.FillQty,
-            }
+		case IfcEvtOrderAdd:
+			o := t.o
+			e := IfcEvtMktQtyChange{
+				Inst:    o.Inst,
+				IsBid:   o.IsBid,
+				Prx:     o.Prx,
+				QtyDiff: o.RemQty(),
+			}
 			for subscriber, _ := range conns {
-				subscriber <- *t  // TODO only to owner
-				subscriber <- ch
+				subscriber <- e
+				subscriber <- t
+			}
+		case *IfcEvtFill:
+			log.Println("eng ems evt: fill: ", t)
+			for subscriber, _ := range conns {
+				subscriber <- *t // TODO only to owner
 			}
 		case *IfcEvtMktQtyChange:
 			log.Println("eng ems evt: qty change to book: %s", t)
@@ -316,4 +348,3 @@ func (eng *CrossEngine) RunIfc() {
 		}
 	}
 }
-
