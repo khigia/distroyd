@@ -1,5 +1,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 {{template "_base_head.html" "Troyd - instruments"}}
+<script>
+        function showDashboard(url, inst) {
+                $e = $('<div><h3>'+inst+'</h3><iframe id="f" width="100%" height="100%" marginWidth="0" marginHeight="0" frameBorder="0" scrolling="auto" title="dashboard">browser not supported</iframe></div>');
+                $e.find('#f').attr("src", url);
+                $e.dialog();
+        }
+</script>
 <body>
 <div id="wrapper">
   {{template "_base_body_wrapper_header.html"}}
@@ -10,7 +17,9 @@
         <div id="content">
           <div>
             <h2>Instruments</h2>
-            <ul>{{range .Instruments}} <li>{{.Key}}, <a href="{{.DashboardUrl}}">dashboard</a></li> {{end}}</ul>
+            <ul>{{range .Instruments}} <li>{{.Key}}, <a href="{{.DashboardUrl}}">dashboard</a>, <a onclick="showDashboard('{{.DashboardUrl}}?view=table', '{{.Key}}')">popup</a></li> {{end}}</ul>
+          </div>
+          <div id="bea">
           </div>
           <div style="clear: both;">&nbsp;</div>
         </div>

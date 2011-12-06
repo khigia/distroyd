@@ -28,6 +28,10 @@ func main() {
 
 	mkt := MktNew(eng)
 	go mkt.Run() // TODO receive data from engine ... but for now:
+
+	api := &ClientApi{engine: eng, ems: ems, mkt: mkt} // TODO admin API(add instrument), trade API(add order), monitoring API
+	api.InstrumentAdd("BEA")
+	api.InstrumentAdd("ZZZZ")
 	go func() {
 		for {
 			mkt.dataChan <- []mdRow{
@@ -45,11 +49,21 @@ func main() {
 			time.Sleep(rand.Int63n(20) * 50 * 1000000)
 		}
 	}()
+	api.InstrumentAdd("BOMB")
+	go func() {
+		for {
+			api.OrderAdd(&Order{
+				Owner:  "loadtest",
+				Inst:   "BOMB",
+				IsBid:  rand.Intn(2) > 0,
+				Qty:    rand.Intn(10) + 1,
+				Prx:    rand.Intn(10)*10 + 1000,
+				Filled: 0,
+			})
+			time.Sleep(rand.Int63n(200) * 1000000)
+		}
+	}()
 
-	api := &ClientApi{engine: eng, ems: ems, mkt: mkt} // TODO admin API(add instrument), trade API(add order), monitoring API
-	api.InstrumentAdd("BEA")
-	api.InstrumentAdd("ZZZZ")
-
-    WebServer(*webAddr, eng, ems, mkt)
+	WebServer(*webAddr, eng, ems, mkt)
 	log.Println("Stop")
 }

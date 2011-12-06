@@ -165,7 +165,15 @@ func webDashboard(c http.ResponseWriter, req *http.Request, api *ClientApi) {
 	}
 	id := req.URL.Path[len("/dashboard/"):]
 	if id != "" {
-		err := tmpl.Execute(c, "dashboard.html", &tmplargs{
+		values := req.URL.Query()
+		view, ok := values["view"]
+		var tpl string
+		if ok && len(view) > 0 && view[0] == "table" {
+			tpl = "dashboard-table.html"
+		} else {
+			tpl = "dashboard.html"
+		}
+		err := tmpl.Execute(c, tpl, &tmplargs{
 			Login:      cookie.Value,
 			Instrument: id,
 		})
@@ -195,12 +203,12 @@ func webMakeWsHandle(fn func(ws *websocket.Conn, api *ClientApi), eng *CrossEngi
 
 func webWsDashboard(ws *websocket.Conn, api *ClientApi) {
 	inst := ws.Request().URL.Path[len("/ws/dashboard/"):]
-    log.Println("ws on ", inst)
+	log.Println("ws on ", inst)
 	cookie, err := ws.Request().Cookie("troyd-session")
 	if err != nil {
 		return
 	}
-    login := cookie.Value
+	login := cookie.Value
 	var mdChan = make(chan []mdRow)
 	var exChan = make(chan OrderQtyBook) // TODO this should come from mdChan!!!
 	//var emsChan = make(chan int) // TODO sub to ems orders
@@ -259,7 +267,7 @@ func webWsDashboard(ws *websocket.Conn, api *ClientApi) {
 		Row   mdRow
 		Coln  int
 	}
-    // TODO see websocket.JSON.Receive()
+	// TODO see websocket.JSON.Receive()
 	buf := make([]byte, 256)
 	for {
 		n, err := ws.Read(buf)
