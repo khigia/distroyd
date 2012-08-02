@@ -1,17 +1,18 @@
 package main
 
 import (
-	"http"
-	"json"
+    "code.google.com/p/go.net/websocket"
+	"net/http"
+	"encoding/json"
 	"log"
-	"template"
-	"websocket"
+	"text/template"
+	//"websocket"
 )
 
-var tmpl *template.Set
+var tmpl *template.Template
 
 func init() {
-	tmpl = template.SetMust(template.ParseTemplateGlob("tmpl/*.html"))
+	tmpl = template.Must(template.ParseGlob("tmpl/*.html"))
 }
 
 func WebServer(addr string, eng *CrossEngine, ems *Ems, mkt *Mkt) {
@@ -60,9 +61,9 @@ func (api *ClientApi) OrderDel(owner string, inst string, prx int, isBid bool) {
 
 func webLogin(c http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
-		err := tmpl.Execute(c, "login.html", nil)
+		err := tmpl.ExecuteTemplate(c, "login.html", nil)
 		if err != nil {
-			http.Error(c, err.String(), http.StatusInternalServerError)
+			http.Error(c, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
@@ -93,6 +94,7 @@ func webLogout(c http.ResponseWriter, req *http.Request) {
 
 func webMakeHandle(fn func(http.ResponseWriter, *http.Request, *ClientApi), eng *CrossEngine, ems *Ems, mkt *Mkt) http.HandlerFunc {
 	// also take path etc ... can probably provide a type implementing the Handler interface
+	log.Println("webMakeHandle")
 	return func(c http.ResponseWriter, req *http.Request) {
 		if cookie, err := req.Cookie("troyd-session"); err != nil || cookie.Value == "" {
 			http.Redirect(c, req, "/login/", http.StatusFound)
@@ -106,12 +108,12 @@ func webMakeHandle(fn func(http.ResponseWriter, *http.Request, *ClientApi), eng 
 func webHome(c http.ResponseWriter, req *http.Request, api *ClientApi) {
 	cookie, err := req.Cookie("troyd-session")
 	if err != nil {
-		http.Error(c, err.String(), http.StatusInternalServerError)
+		http.Error(c, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = tmpl.Execute(c, "index.html", cookie.Value)
+	err = tmpl.ExecuteTemplate(c, "index.html", cookie.Value)
 	if err != nil {
-		http.Error(c, err.String(), http.StatusInternalServerError)
+		http.Error(c, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -127,7 +129,7 @@ func webInstrument(c http.ResponseWriter, req *http.Request, api *ClientApi) {
 	}
 	cookie, err := req.Cookie("troyd-session")
 	if err != nil {
-		http.Error(c, err.String(), http.StatusInternalServerError)
+		http.Error(c, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	id := req.URL.Path[len("/instrument/"):]
@@ -145,9 +147,9 @@ func webInstrument(c http.ResponseWriter, req *http.Request, api *ClientApi) {
 			args.Instruments[i].Key = k
 			args.Instruments[i].DashboardUrl = "/dashboard/" + k
 		}
-		err := tmpl.Execute(c, "instrument-index.html", args)
+		err := tmpl.ExecuteTemplate(c, "instrument-index.html", args)
 		if err != nil {
-			http.Error(c, err.String(), http.StatusInternalServerError)
+			http.Error(c, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
@@ -160,7 +162,8 @@ func webDashboard(c http.ResponseWriter, req *http.Request, api *ClientApi) {
 	}
 	cookie, err := req.Cookie("troyd-session")
 	if err != nil {
-		http.Error(c, err.String(), http.StatusInternalServerError)
+	    log.Println("err cookie")
+		http.Error(c, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	id := req.URL.Path[len("/dashboard/"):]
@@ -173,12 +176,14 @@ func webDashboard(c http.ResponseWriter, req *http.Request, api *ClientApi) {
 		} else {
 			tpl = "dashboard.html"
 		}
-		err := tmpl.Execute(c, tpl, &tmplargs{
+	    log.Println("dashboard tmpl found")
+		err := tmpl.ExecuteTemplate(c, tpl, &tmplargs{
 			Login:      cookie.Value,
 			Instrument: id,
 		})
 		if err != nil {
-			http.Error(c, err.String(), http.StatusInternalServerError)
+	        log.Println("dashboard tmpl err")
+			http.Error(c, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
@@ -192,7 +197,8 @@ func webMakeWsHandle(fn func(ws *websocket.Conn, api *ClientApi), eng *CrossEngi
 		// TODO not crossapi but EmsApi
 		api := &ClientApi{engine: eng, ems: ems, mkt: mkt}
 		fnh := func(ws *websocket.Conn) { fn(ws, api) }
-		if _, found := req.Header["Sec-Websocket-Key1"]; found {
+        log.Printf("ws socket: %a", req.Header)
+		if _, found := req.Header["Sec-Websocket-Key"]; found {
 			websocket.Handler(fnh).ServeHTTP(c, req)
 		} else {
 			websocket.Handler(fnh).ServeHTTP(c, req)
@@ -202,6 +208,7 @@ func webMakeWsHandle(fn func(ws *websocket.Conn, api *ClientApi), eng *CrossEngi
 }
 
 func webWsDashboard(ws *websocket.Conn, api *ClientApi) {
+	log.Println("ws init")
 	inst := ws.Request().URL.Path[len("/ws/dashboard/"):]
 	log.Println("ws on ", inst)
 	cookie, err := ws.Request().Cookie("troyd-session")

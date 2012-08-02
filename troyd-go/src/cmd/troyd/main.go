@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"log"
-	"rand"
+	"math/rand"
 	"time"
 )
 
 var webAddr = flag.String("webAddr", ":8080", "http service address")
+var webBomb = flag.Int64("webBomb", 300, "max time in ms between 2 random orders")
 
 func main() {
 	log.Println("Start")
@@ -46,7 +47,7 @@ func main() {
 				{0, rand.Intn(100), 1500, 0, 0},
 				{0, rand.Intn(100), 1490, 0, 0},
 			}
-			time.Sleep(rand.Int63n(20) * 50 * 1000000)
+			time.Sleep(time.Duration(100 + rand.Int63n(100)) * time.Millisecond)
 		}
 	}()
 	api.InstrumentAdd("BOMB")
@@ -60,7 +61,7 @@ func main() {
 				Prx:    rand.Intn(10)*10 + 1000,
 				Filled: 0,
 			})
-			time.Sleep(rand.Int63n(200) * 1000000)
+			time.Sleep(time.Duration(rand.Int63n(*webBomb)) * time.Millisecond)
 		}
 	}()
 

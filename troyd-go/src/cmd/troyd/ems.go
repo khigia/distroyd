@@ -109,7 +109,12 @@ func (ems *Ems) Run() {
 		case EmsBookTopSub:
 			log.Println("ems evt: sub req: ", t)
 			ctx := ems.getOrderQtyBookContext(t.login, t.inst)
-			ctx.subscribers[t.sub] = 0, t.isSub
+            // change for go1: ctx.subscribers[t.sub] = 0, t.isSub
+            if t.isSub {
+                ctx.subscribers[t.sub] = 0
+            } else {
+			    delete(ctx.subscribers, t.sub)
+            }
 			if t.isSub {
 				t.sub <- ctx.book
 			}

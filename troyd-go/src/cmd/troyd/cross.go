@@ -342,7 +342,12 @@ func (eng *CrossEngine) RunIfc() {
 			}
 		case IfcEvtSub:
 			log.Println("eng ems evt: sub req: %s", t)
-			conns[t.sub] = 0, t.isSub
+            // changing for go1: conns[t.sub] = 0, t.isSub
+            if t.isSub {
+                conns[t.sub] = 0
+            } else {
+			    delete(conns, t.sub)
+            }
 		default:
 			log.Println("eng ems evt: unknown", m)
 		}
